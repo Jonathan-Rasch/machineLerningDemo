@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
 import matplotlib
 import math
 
@@ -58,9 +59,22 @@ def normalize(data: pd.DataFrame) -> pd.DataFrame:
     data = pd.DataFrame(data=data_ndarr,columns=data.columns)
     return (data,scalar)
 
-def getData(n=10000):
+def getData(n=10000,test_percentage=0.3):
     data = generatePizzaData(n, 1)
-    return normalize(data)
+    features = data.drop(labels=['delivery_time_min'],axis=1)
+    labels = data[['delivery_time_min']]
+    X_train_raw, X_test_raw , y_train_raw, y_test_raw = train_test_split(x=features,y=labels,test_size=test_percentage,shuffle=True)
+    x_train, x_scalar = normalize(X_train_raw)
+    y_train, y_scalar = normalize(y_train_raw)
+    x_test = x_scalar.transform(X_test_raw)
+    y_test = y_scalar.transform(X_test_raw)
+    df_x_train = pd.DataFrame(data=x_train,columns=features.columns)
+    df_y_train = pd.DataFrame(data=y_train, columns=labels.columns)
+    df_x_test = pd.DataFrame(data=x_test,columns=features.columns)
+    df_y_test = pd.DataFrame(data=y_test,columns=labels.columns)
+    df_train = pd.concat([df_x_train,df_y_train],axis=1)
+    df_test = pd.concat([df_x_test, df_y_test], axis=1)
+    return (df_train,df_test)
 
 if __name__ == "__main__":
     data = generatePizzaData(1000,2)
