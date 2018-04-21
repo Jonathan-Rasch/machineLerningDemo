@@ -54,11 +54,13 @@ model = tf.estimator.DNNRegressor(hidden_units=[16,16,8],feature_columns=f_cols,
 model.train(input_fn=infn_train, steps=1)
 error = evaluate(model)
 errors = []
+x_axis = []
 index = 0
 steps = 1
 while(error>5.5):
     model.train(input_fn=infn_train,steps=steps)
-    index += 1
+    index += steps
+    x_axis.append(index)
     error = evaluate(model)
     errors.append(error)
     if(error > 20):
@@ -69,7 +71,7 @@ while(error>5.5):
         steps = 500
     elif (error < 7):
         steps = 1000
-plt.plot(errors)
+plt.plot(x_axis,errors)
 plt.show()
 
 
