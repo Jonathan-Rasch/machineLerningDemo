@@ -77,11 +77,11 @@ def transform(data: pd.DataFrame,scalar,columns = None):
     data = pd.concat([data[unused_cols].reset_index(drop=True),scaled],axis=1)
     return data
 
-def getData(n=10000,test_percentage=0.3):
+def getData(n=10000,test_percentage=0.3,visualise=False):
     data = generatePizzaData(n, 0.2)
     features = data.drop(labels=['delivery_time_min'],axis=1)
     labels = data[['delivery_time_min']]
-    X_train_raw, X_test_raw , y_train_raw, y_test_raw = train_test_split(features,labels,test_size=test_percentage,shuffle=True)
+    X_train_raw, X_test_raw , y_train_raw, y_test_raw = train_test_split(features,labels,test_size=test_percentage,shuffle=False,random_state=101)
     x_train, x_scalar = normalize(X_train_raw,['distance_km','order_size','hour_of_day'])
     y_train, y_scalar = normalize(y_train_raw,['delivery_time_min'])
     x_test = transform(X_test_raw,x_scalar,['distance_km','order_size','hour_of_day'])
@@ -92,7 +92,20 @@ def getData(n=10000,test_percentage=0.3):
     df_y_test = pd.DataFrame(data=y_test,columns=labels.columns)
     df_train = pd.concat([df_x_train,df_y_train],axis=1)
     df_test = pd.concat([df_x_test, df_y_test], axis=1)
-    return (df_train,df_test,x_scalar,y_scalar)
+    if(visualise):
+        data.replace(to_replace='none', value=0, inplace=True)
+        data.replace(to_replace='car', value=1, inplace=True)
+        data.replace(to_replace='scooter', value=2, inplace=True)
+        data.replace(to_replace='bicicle', value=3, inplace=True)
+        # data.plot(x='distance_km', y='delivery_time_min', style='x')
+        # data.plot(x='order_size', y='delivery_time_min', style='x')
+        # data.plot(x='vehicle_type', y='delivery_time_min', style='x')
+        # data.plot(x='hour_of_day', y='delivery_time_min', style='x')
+        # scatter matrix
+        axis_scatter = pd.scatter_matrix(data,alpha=0.2,diagonal='kde')
+        return (df_train, df_test, x_scalar, y_scalar,axis_scatter)
+    else:
+        return (df_train,df_test,x_scalar,y_scalar)
 
 if __name__ == "__main__":
     data = generatePizzaData(1000,1)
@@ -100,14 +113,15 @@ if __name__ == "__main__":
     data.replace(to_replace='car', value=1, inplace=True)
     data.replace(to_replace='scooter', value=2, inplace=True)
     data.replace(to_replace='bicicle', value=3, inplace=True)
-    data.plot(x='distance_km',y='delivery_time_min',style='x')
-    data.plot(x='order_size', y='delivery_time_min', style='x')
-    data.plot(x='vehicle_type', y='delivery_time_min', style='x')
-    data.plot(x='hour_of_day', y='delivery_time_min', style='x')
+    plt.figure(1)
+    # data.plot(x='distance_km',y='delivery_time_min',style='x')
+    # data.plot(x='order_size', y='delivery_time_min', style='x')
+    # data.plot(x='vehicle_type', y='delivery_time_min', style='x')
+    # data.plot(x='hour_of_day', y='delivery_time_min', style='x')
     #scatter matrix
-    axis_scatter = pd.scatter_matrix(data)
-    normalized_data,scalar = normalize(data)
-    corr_values = normalized_data.corr().values
+    axis_scatter = pd.scatter_matrix(data,diagonal='kde')
+    # normalized_data,scalar = normalize(data)
+    # corr_values = normalized_data.corr().values
     # setting background color of axes bg
     # cmap = 'hot'
     # for index,sub_axis in enumerate(axis_scatter.flatten()):
