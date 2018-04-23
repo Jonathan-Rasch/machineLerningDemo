@@ -6,12 +6,13 @@ import dataGen
 import random
 import logging
 import math
-import inspect_checkpoint
+from DNN_visual import NeuralNetwork
+from sklearn.preprocessing import MinMaxScaler
 import time
 ########################################################################################################################
 # PARAMETERS
 ########################################################################################################################
-logging.getLogger().setLevel(logging.INFO)
+#logging.getLogger().setLevel(logging.INFO)
 RANDOM_STATE = 101
 np.random.seed(RANDOM_STATE)
 tf.set_random_seed(RANDOM_STATE)
@@ -35,6 +36,16 @@ def evaluate(model):
     print("ERROR: " + str(avg_err) + " minutes")
     return avg_err
 
+def scale2dArr(array2d, arr_min, arr_max, scaleMin = 0, scaleMax = 1):
+    diff = arr_max - arr_min
+    scaledArr = []
+    for array in array2d:
+        sub_scaledArr = []
+        for val in array:
+            value = abs(val)
+            sub_scaledArr.append(scaleMin + (value/diff)*scaleMax)
+        scaledArr.append(sub_scaledArr)
+    return scaledArr
 ########################################################################################################################
 # getting data
 ########################################################################################################################
@@ -42,8 +53,8 @@ df_train,df_test,x_scalar,y_scalar,scatterMatrix = dataGen.getData(1000,0.3,visu
 ########################################################################################################################
 # generating graph
 ########################################################################################################################
-figure = plt.figure(2)
-axis_error = figure.add_subplot(111)
+error_figure = plt.figure(2)
+axis_error = error_figure.add_subplot(111)
 axis_error.set_autoscaley_on(True)
 #axis_error.set_ylim([0,60])
 axis_error.set_yticks(list(range(0,500,5)),minor=False)
@@ -79,31 +90,58 @@ infn_pred = tf.estimator.inputs.pandas_input_fn(x=df_test[feature_columns],num_e
 steps = 1
 my_checkpointing_config = tf.estimator.RunConfig(
     save_checkpoints_secs = 5,  # Save checkpoints every 30 seconds.
-    keep_checkpoint_max = 2,       # Retain the 10 most recent checkpoints.
-    model_dir='pizza'
+    keep_checkpoint_max = 2       # Retain the 10 most recent checkpoints.
+    #model_dir='pizza'
 )
 model = tf.estimator.DNNRegressor(hidden_units=[16,16,8],feature_columns=f_cols,dropout=0.1,activation_fn=tf.nn.elu,config=my_checkpointing_config)
 ########################################################################################################################
 # training
 ########################################################################################################################
 model.train(input_fn=TRAINING_FUNCT, steps=1)
+nn = NeuralNetwork([16,16,8],5,1) # 5 because vehicle type feature column has 2 dimensions
+nn.draw()
+#input("Press any key to begin training.")
 
 error = evaluate(model)
 errors = []
 x_axis = []
 index = 0
 while(error>5.5):
+    # training model
     model.train(input_fn=TRAINING_FUNCT,steps=steps)
-    #weights = model.get_variable_value("dnn/hiddenlayer_0/kernel/part_0")
+    # obtaining weight vectors
+    weights_hidden0_unscaled = np.array(list(model.get_variable_value("dnn/hiddenlayer_0/kernel")))
+    weights_hidden1_unscaled = np.array(list(model.get_variable_value("dnn/hiddenlayer_1/kernel")))
+    weights_hidden2_unscaled = np.array(list(model.get_variable_value("dnn/hiddenlayer_2/kernel")))
+    combined_arrays = np.concatenate((weights_hidden0_unscaled.flatten(),weights_hidden1_unscaled.flatten(),weights_hidden2_unscaled.flatten())).reshape(-1,1)
+    arr_min = None
+    arr_max = None
+    for val in combined_arrays:
+        value = val[0]
+        if(arr_min == None or arr_min > value):
+            arr_min = value
+        if(arr_max == None or arr_max < value):
+            arr_max = value
+    weights_hidden0 = scale2dArr(weights_hidden0_unscaled, arr_min=arr_min, arr_max=arr_max)
+    weights_hidden1 = scale2dArr(weights_hidden1_unscaled, arr_min=arr_min, arr_max=arr_max)
+    weights_hidden2 = scale2dArr(weights_hidden2_unscaled, arr_min=arr_min, arr_max=arr_max)
+    nn.updateLayerWeights(1, weights_hidden0) # hidden layer 0 is the 1 st layer of network (layer 0 is input layer)
+    nn.updateLayerWeights(2, weights_hidden1)
+    nn.updateLayerWeights(3, weights_hidden2)
+    nn.updateFigure() # updating nn graph
+    # computing average error
     error = evaluate(model)
     if(error>60):
         continue
+    # making changes to graphs
+    plt.figure(2)
     index += steps
     x_axis.append(index)
     errors.append(error)
-    line, = axis_error.plot(x_axis,errors,)
-    figure.canvas.draw()
-    figure.canvas.flush_events()
+    line, = axis_error.plot(x_axis,errors)
+    error_figure.canvas.draw()
+    error_figure.canvas.flush_events()
+    # addjusting step number
     if(error > 40):
         steps = 1
     elif(error < 40 and error > 30):
