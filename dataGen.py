@@ -52,8 +52,42 @@ def generatePizzaData(numDataPoints = 10000,noiseLevel=1) -> pd.DataFrame:
         df = df.append(other=row_dict, ignore_index=True)
     return df
 
-def calculateDeliveryTime():
-    pass
+def calculateDeliveryTime(vehicel_type,delivery_distance,hour_of_day,order_size,noiseLevel=0.2):
+    ########################################################################################################################
+    # Ordersize (larger order means more time to prepare)
+    ########################################################################################################################
+    preperationTime = math.fabs(
+        order_size * 40 + 2.5 * np.random.normal() * noiseLevel)  # maximum, +5 is min preperation time and quality check
+    ########################################################################################################################
+    # delivery distance
+    ########################################################################################################################
+    MAX_DELIVERY_DISTANCE_KM = 20
+    timeDueToDistance = 0.1145 * (delivery_distance ** 2) - 0.915 * (
+        delivery_distance) + 5 * np.random.normal() * noiseLevel
+    ########################################################################################################################
+    # delivery time due to time of day (traffic and demand could cause this)
+    ########################################################################################################################
+    timeDueToHour = 20 * hour_of_day  # added time due to traffic etc
+    ########################################################################################################################
+    # driver vehicle (how well the driver can get around)
+    ########################################################################################################################
+    vehicle_types = ['none', 'car', 'scooter', 'bicycle']
+    for index,vehicle_t in enumerate(vehicle_types):
+        if(vehicle_t == vehicel_type):
+            vehicle = index
+    if (vehicle == 0):  # walking
+        timeDueToVehicle = (delivery_distance / (
+                    5.0 * np.random.uniform(low=0.8, high=1))) * 60  # assuming avg walking speed of 5Kmh
+    elif (vehicle == 1):  # car
+        timeDueToVehicle = (delivery_distance / (10.0 * np.random.uniform(low=0.8, high=1))) * 60
+    elif (vehicle == 2):  # scooter
+        timeDueToVehicle = (delivery_distance / (20.00 * np.random.uniform(low=0.8, high=1))) * 60
+    elif (vehicle == 3):  # bicicle
+        timeDueToVehicle = (delivery_distance / (30.0 * np.random.uniform(low=0.8, high=1))) * 60
+    ########################################################################################################################
+    # Summing times
+    ########################################################################################################################
+    return timeDueToDistance + preperationTime + timeDueToHour + timeDueToVehicle
 
 def normalize(data: pd.DataFrame,columns=None,col_scalar = None) -> pd.DataFrame:
     unused_cols = []
@@ -83,8 +117,8 @@ def transform(data: pd.DataFrame,scalar,columns = None):
     data = pd.concat([data[unused_cols].reset_index(drop=True),scaled],axis=1)
     return data
 
-def getData(n=10000,test_percentage=0.3,visualise=False):
-    data = generatePizzaData(n, 0.2)
+def getData(n=10000,test_percentage=0.3,visualise=False,noiseLevel=1):
+    data = generatePizzaData(n, noiseLevel=noiseLevel)
     features = data.drop(labels=['delivery_time_min'],axis=1)
     labels = data[['delivery_time_min']]
     X_train_raw, X_test_raw , y_train_raw, y_test_raw = train_test_split(features,labels,test_size=test_percentage,shuffle=False,random_state=101)
@@ -114,12 +148,11 @@ def getData(n=10000,test_percentage=0.3,visualise=False):
         return (df_train,df_test,x_scalar,y_scalar)
 
 if __name__ == "__main__":
-    data = generatePizzaData(1000,1)
+    data = generatePizzaData(1000,0.2)
     data.replace(to_replace='none', value=0, inplace=True)
     data.replace(to_replace='car', value=1, inplace=True)
     data.replace(to_replace='scooter', value=2, inplace=True)
     data.replace(to_replace='bicycle', value=3, inplace=True)
-    plt.figure(1)
     # data.plot(x='distance_km',y='delivery_time_min',style='x')
     # data.plot(x='order_size', y='delivery_time_min', style='x')
     # data.plot(x='vehicle_type', y='delivery_time_min', style='x')

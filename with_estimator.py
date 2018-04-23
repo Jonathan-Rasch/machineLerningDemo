@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import dataGen
-from dataGen import normalize
+from dataGen import normalize,calculateDeliveryTime
 import random
 import logging
 import math
@@ -15,6 +15,7 @@ import time
 ########################################################################################################################
 #logging.getLogger().setLevel(logging.INFO)
 RANDOM_STATE = 101
+NOISE_LEVEL = 0.2
 np.random.seed(RANDOM_STATE)
 tf.set_random_seed(RANDOM_STATE)
 random.seed(RANDOM_STATE)
@@ -23,18 +24,23 @@ random.seed(RANDOM_STATE)
 ########################################################################################################################
 def evaluate(model):
     prediction_lst = model.predict(input_fn=infn_pred)
+    print(model.evaluate(input_fn=infn_test))
     predictions = []
     for pred in prediction_lst:
         value_raw = pred['predictions']
         value = y_scalar.inverse_transform(value_raw.reshape(1,-1))
-        predictions.append(value)
+        predictions.append(value[0][0])
     #computing average error
     error_sum = 0
     for index,actual_value in enumerate(y_scalar.inverse_transform(df_test[['delivery_time_min']].values)):
-        error = math.fabs(predictions[index] - actual_value)
+        predicted = predictions[index]
+        if (predicted < actual_value):
+            error = actual_value - predicted
+        else:
+            error = predicted - actual_value
         error_sum += error
     avg_err = error_sum/len(predictions)
-    print("ERROR: " + str(avg_err) + " minutes")
+    print(" AVERAGE ERROR: " + str(avg_err) + " minutes")
     return avg_err
 
 def scale2dArr(array2d, arr_min, arr_max, scaleMin = 0, scaleMax = 1):
@@ -50,7 +56,7 @@ def scale2dArr(array2d, arr_min, arr_max, scaleMin = 0, scaleMax = 1):
 ########################################################################################################################
 # getting data
 ########################################################################################################################
-df_train,df_test,x_scalar,y_scalar = dataGen.getData(1000,0.3,visualise=False)
+df_train,df_test,x_scalar,y_scalar = dataGen.getData(1000,0.3,visualise=False,noiseLevel=NOISE_LEVEL)
 ########################################################################################################################
 # generating graph
 ########################################################################################################################
@@ -101,14 +107,33 @@ model = tf.estimator.DNNRegressor(hidden_units=[16,16,8],feature_columns=f_cols,
 model.train(input_fn=TRAINING_FUNCT, steps=1)
 nn = NeuralNetwork([16,16,8],5,1) # 5 because vehicle type feature column has 2 dimensions
 nn.updateLayerWeights(4, [[1],[1],[1],[1],[1],[1],[1],[1]]) # for output layer
+# obtaining weight vectors
+weights_hidden0_unscaled = np.array(list(model.get_variable_value("dnn/hiddenlayer_0/kernel")))
+weights_hidden1_unscaled = np.array(list(model.get_variable_value("dnn/hiddenlayer_1/kernel")))
+weights_hidden2_unscaled = np.array(list(model.get_variable_value("dnn/hiddenlayer_2/kernel")))
+combined_arrays = np.concatenate((weights_hidden0_unscaled.flatten(),weights_hidden1_unscaled.flatten(),weights_hidden2_unscaled.flatten())).reshape(-1,1)
+arr_min = None
+arr_max = None
+for val in combined_arrays:
+    value = val[0]
+    if(arr_min == None or arr_min > value):
+        arr_min = value
+    if(arr_max == None or arr_max < value):
+        arr_max = value
+weights_hidden0 = scale2dArr(weights_hidden0_unscaled, arr_min=arr_min, arr_max=arr_max,scaleMin=0.1,scaleMax=2)
+weights_hidden1 = scale2dArr(weights_hidden1_unscaled, arr_min=arr_min, arr_max=arr_max,scaleMin=0.1,scaleMax=2)
+weights_hidden2 = scale2dArr(weights_hidden2_unscaled, arr_min=arr_min, arr_max=arr_max,scaleMin=0.1,scaleMax=2)
+nn.updateLayerWeights(1, weights_hidden0) # hidden layer 0 is the 1 st layer of network (layer 0 is input layer)
+nn.updateLayerWeights(2, weights_hidden1)
+nn.updateLayerWeights(3, weights_hidden2)
 nn.draw()
-#input("Press any key to begin training.")
-
+plt.pause(10)
+input("Press any key to begin training.")
 error = evaluate(model)
 errors = []
 x_axis = []
 index = 0
-while(error>555.5):
+while(error>5):
     # training model
     model.train(input_fn=TRAINING_FUNCT,steps=steps)
     # obtaining weight vectors
@@ -124,9 +149,9 @@ while(error>555.5):
             arr_min = value
         if(arr_max == None or arr_max < value):
             arr_max = value
-    weights_hidden0 = scale2dArr(weights_hidden0_unscaled, arr_min=arr_min, arr_max=arr_max,scaleMax=2)
-    weights_hidden1 = scale2dArr(weights_hidden1_unscaled, arr_min=arr_min, arr_max=arr_max,scaleMax=2)
-    weights_hidden2 = scale2dArr(weights_hidden2_unscaled, arr_min=arr_min, arr_max=arr_max,scaleMax=2)
+    weights_hidden0 = scale2dArr(weights_hidden0_unscaled, arr_min=arr_min, arr_max=arr_max,scaleMin=0.1,scaleMax=2)
+    weights_hidden1 = scale2dArr(weights_hidden1_unscaled, arr_min=arr_min, arr_max=arr_max,scaleMin=0.1,scaleMax=2)
+    weights_hidden2 = scale2dArr(weights_hidden2_unscaled, arr_min=arr_min, arr_max=arr_max,scaleMin=0.1,scaleMax=2)
     nn.updateLayerWeights(1, weights_hidden0) # hidden layer 0 is the 1 st layer of network (layer 0 is input layer)
     nn.updateLayerWeights(2, weights_hidden1)
     nn.updateLayerWeights(3, weights_hidden2)
@@ -145,11 +170,11 @@ while(error>555.5):
     error_figure.canvas.flush_events()
     # addjusting step number
     if(error > 40):
-        steps = 1
-    elif(error < 40 and error > 30):
         steps = 5
-    elif(error < 30 and error > 20):
+    elif(error < 40 and error > 30):
         steps = 10
+    elif(error < 30 and error > 20):
+        steps = 50
     elif(error < 20 and error >10):
         TRAINING_FUNCT = infn_train2
         steps = 100
@@ -163,6 +188,9 @@ while(error>555.5):
         steps = 2000
 print("\nPREDICTION MODE\n")
 while(True):
+    isexit = input("type x to abort, or any other key to continue: ") == "x"
+    if (isexit):
+        exit(0)
     # selecting drivers vehicle
     vehicle_types = ['none', 'car', 'scooter', 'bicycle']
     while(True):
@@ -224,7 +252,7 @@ while(True):
     for pred in prediction_lst:
         value_raw = pred['predictions']
         value = y_scalar.inverse_transform(value_raw.reshape(1,-1))
-    print("PREDICTED DELIVERY TIME: {} minutes".format(value[0][0]))
+    print("PREDICTED DELIVERY TIME: {} minutes.".format(value[0][0]))
     print("-------------------------------------------------------------")
 
 
