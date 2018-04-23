@@ -52,14 +52,20 @@ def generatePizzaData(numDataPoints = 10000,noiseLevel=1) -> pd.DataFrame:
         df = df.append(other=row_dict, ignore_index=True)
     return df
 
-def normalize(data: pd.DataFrame,columns=None) -> pd.DataFrame:
+def calculateDeliveryTime():
+    pass
+
+def normalize(data: pd.DataFrame,columns=None,col_scalar = None) -> pd.DataFrame:
     unused_cols = []
     if(columns == None):
         columns = data.columns
     for col in data.columns:
         if(not col in columns ):
             unused_cols.append(col)
-    scalar = MinMaxScaler().fit(data[columns])
+    if(col_scalar == None):
+        scalar = MinMaxScaler().fit(data[columns])
+    else:
+        scalar = col_scalar
     data_ndarr = scalar.transform(data[columns])
     data_scaled = pd.DataFrame(data=data_ndarr,columns=columns)
     data_unscaled = data[unused_cols].reset_index(drop=True)

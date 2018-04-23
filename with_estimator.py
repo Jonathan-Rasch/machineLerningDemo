@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import dataGen
+from dataGen import normalize
 import random
 import logging
 import math
@@ -107,7 +108,7 @@ error = evaluate(model)
 errors = []
 x_axis = []
 index = 0
-while(error>5.5):
+while(error>555.5):
     # training model
     model.train(input_fn=TRAINING_FUNCT,steps=steps)
     # obtaining weight vectors
@@ -216,10 +217,14 @@ while(True):
     row_dict = {'distance_km':distance,'order_size':size,'vehicle_type':vehicle,'hour_of_day':time}
     df = pd.DataFrame(data=None,columns=columns)
     df = df.append(other=row_dict, ignore_index=True)
-    pred_in_fn = tf.estimator.inputs.pandas_input_fn(x=df,batch_size=1,num_epochs=1,shuffle=False)
-    prediction = list(model.predict(input_fn=pred_in_fn))[0]['predictions'][0]
-    prediction = y_scalar.inverse_transform(prediction)
-    print("PREDICTED DELIVERY TIME: {} minutes".format(prediction[0][0]))
+    df_scaled = normalize(df,columns=['distance_km','order_size','hour_of_day'],col_scalar=x_scalar)
+    #data = pd.concat([data_unscaled, data_scaled], axis=1)
+    pred_in_fn = tf.estimator.inputs.pandas_input_fn(x=df_scaled[0],batch_size=1,num_epochs=1,shuffle=False)
+    prediction_lst = list(model.predict(input_fn=pred_in_fn))
+    for pred in prediction_lst:
+        value_raw = pred['predictions']
+        value = y_scalar.inverse_transform(value_raw.reshape(1,-1))
+    print("PREDICTED DELIVERY TIME: {} minutes".format(value[0][0]))
     print("-------------------------------------------------------------")
 
 
