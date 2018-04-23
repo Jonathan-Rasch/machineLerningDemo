@@ -4,6 +4,7 @@
 from matplotlib import pyplot
 from math import cos, sin, atan
 
+FIGURE_NUM = 1
 
 class Neuron():
     def __init__(self, x, y):
@@ -86,11 +87,14 @@ class Layer():
                 if self.previous_layer:
                     for prev_neuron_index,previous_layer_neuron in enumerate(self.previous_layer.neurons):
                         self.__line_between_two_neurons(neuron, previous_layer_neuron,weight=self.weights[prev_neuron_index][neuron_index])
+        else:
+            for neuron_index,neuron in enumerate(self.neurons):
+                neuron.draw( self.neuron_radius )
 
 
 class NeuralNetwork():
     def __init__(self, hiddenUnits,inputs,outputs):
-        self.figure = pyplot.figure(3)
+        self.figure = pyplot.figure(FIGURE_NUM)
         self.axes = self.figure.add_subplot(111)
         #determining widest layer
         widest_layer = 0
@@ -105,6 +109,7 @@ class NeuralNetwork():
         for layer in hiddenUnits:
             self.add_layer(layer)
         self.add_layer(outputs)
+        self.isFirstDraw = True
 
     def add_layer(self, number_of_neurons ):
         layer = Layer(self, number_of_neurons, self.number_of_neurons_in_widest_layer)
@@ -115,24 +120,27 @@ class NeuralNetwork():
         layer.updateWeights(weights)
 
     def draw(self):
-        pyplot.figure(3)
+        pyplot.figure(FIGURE_NUM)
         for i in range( len(self.layers)):
             layer = self.layers[i]
             if i == len(self.layers)-1:
                 i = -1
             layer.draw( i )
-        pyplot.axis('scaled')
-        pyplot.axis('off')
+        self.axes.axis('scaled')
+        self.axes.axis('off')
         pyplot.title('Neural Network architecture', fontsize=15)
-        pyplot.show(block=False)
+        if self.isFirstDraw:
+            self.isFirstDraw = False
+            pyplot.show(block=False)
+        else:
+            pyplot.pause(0.1)
 
-    def updateFigure(self):
-        pyplot.figure(3)
-        for i in range( len(self.layers) ):
-            layer = self.layers[i]
-            layer.updateFigure()
-        self.figure.canvas.draw()
-        self.figure.canvas.flush_events()
+    # def updateFigure(self):
+    #     for i in range( len(self.layers) ):
+    #         layer = self.layers[i]
+    #         layer.updateFigure()
+    #     self.figure.canvas.draw()
+    #     self.figure.canvas.flush_events()
 
 # class DrawNN():
 #     def __init__( self, neural_network ):

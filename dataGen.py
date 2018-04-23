@@ -33,7 +33,7 @@ def generatePizzaData(numDataPoints = 10000,noiseLevel=1) -> pd.DataFrame:
         ########################################################################################################################
         # driver vehicle (how well the driver can get around)
         ########################################################################################################################
-        vehicle_types = ['none','car','scooter','bicicle']
+        vehicle_types = ['none','car','scooter','bicycle']
         vehicle = np.random.randint(low=0,high=4)
         row_dict['vehicle_type'] = vehicle_types[vehicle]
         if(vehicle == 0): #walking
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     data.replace(to_replace='none', value=0, inplace=True)
     data.replace(to_replace='car', value=1, inplace=True)
     data.replace(to_replace='scooter', value=2, inplace=True)
-    data.replace(to_replace='bicicle', value=3, inplace=True)
+    data.replace(to_replace='bicycle', value=3, inplace=True)
     plt.figure(1)
     # data.plot(x='distance_km',y='delivery_time_min',style='x')
     # data.plot(x='order_size', y='delivery_time_min', style='x')

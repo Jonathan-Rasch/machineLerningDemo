@@ -49,7 +49,7 @@ def scale2dArr(array2d, arr_min, arr_max, scaleMin = 0, scaleMax = 1):
 ########################################################################################################################
 # getting data
 ########################################################################################################################
-df_train,df_test,x_scalar,y_scalar,scatterMatrix = dataGen.getData(1000,0.3,visualise=True)
+df_train,df_test,x_scalar,y_scalar = dataGen.getData(1000,0.3,visualise=False)
 ########################################################################################################################
 # generating graph
 ########################################################################################################################
@@ -62,8 +62,8 @@ axis_error.set_title("Avg model error (in minutes) vs training iterations ")
 plt.xlabel("number of training iterations")
 plt.ylabel("error (minutes) in predicted delivery time vs actual delivery time")
 plt.figure(1)
-for axis in scatterMatrix.flatten():
-    axis.plot()
+# for axis in scatterMatrix.flatten():
+#     axis.plot()
 plt.show(block=False)
 ########################################################################################################################
 # constructing feature columns
@@ -99,6 +99,7 @@ model = tf.estimator.DNNRegressor(hidden_units=[16,16,8],feature_columns=f_cols,
 ########################################################################################################################
 model.train(input_fn=TRAINING_FUNCT, steps=1)
 nn = NeuralNetwork([16,16,8],5,1) # 5 because vehicle type feature column has 2 dimensions
+nn.updateLayerWeights(4, [[1],[1],[1],[1],[1],[1],[1],[1]]) # for output layer
 nn.draw()
 #input("Press any key to begin training.")
 
@@ -122,13 +123,13 @@ while(error>5.5):
             arr_min = value
         if(arr_max == None or arr_max < value):
             arr_max = value
-    weights_hidden0 = scale2dArr(weights_hidden0_unscaled, arr_min=arr_min, arr_max=arr_max)
-    weights_hidden1 = scale2dArr(weights_hidden1_unscaled, arr_min=arr_min, arr_max=arr_max)
-    weights_hidden2 = scale2dArr(weights_hidden2_unscaled, arr_min=arr_min, arr_max=arr_max)
+    weights_hidden0 = scale2dArr(weights_hidden0_unscaled, arr_min=arr_min, arr_max=arr_max,scaleMax=2)
+    weights_hidden1 = scale2dArr(weights_hidden1_unscaled, arr_min=arr_min, arr_max=arr_max,scaleMax=2)
+    weights_hidden2 = scale2dArr(weights_hidden2_unscaled, arr_min=arr_min, arr_max=arr_max,scaleMax=2)
     nn.updateLayerWeights(1, weights_hidden0) # hidden layer 0 is the 1 st layer of network (layer 0 is input layer)
     nn.updateLayerWeights(2, weights_hidden1)
     nn.updateLayerWeights(3, weights_hidden2)
-    nn.updateFigure() # updating nn graph
+    nn.draw() #nn.updateFigure() # updating nn graph
     # computing average error
     error = evaluate(model)
     if(error>60):
@@ -159,8 +160,67 @@ while(error>5.5):
         steps = 1000
     elif (error < 6):
         steps = 2000
-
-
+print("\nPREDICTION MODE\n")
+while(True):
+    # selecting drivers vehicle
+    vehicle_types = ['none', 'car', 'scooter', 'bicycle']
+    while(True):
+        print("Select drivers vehicle type: (0: None, 1: car, 2: scooter 3: bicycle)")
+        vehicle = input("vehicle: ")
+        if(str(vehicle) in ['0','1','2','3']):
+            vehicle = vehicle_types[int(vehicle)]
+            break
+        else:
+            print("invalid input.")
+    # selecting distance to customer
+    while(True):
+        print("Select distance to customer: (number between 0 and 20 (inclusive) Kilometers)")
+        distance = input("distance: ")
+        try:
+            f_dist = float(distance)
+            if (f_dist > 0 and f_dist <= 20):
+                distance = float(distance)
+                break
+            else:
+                print("invalid input.")
+        except:
+            print("invalid input.")
+    # selecting time of day
+    while (True):
+        print("Select hour of day: (number between 0 and 24 (exclusive) )")
+        time = input("time: ")
+        try:
+            f_time = float(time)
+            if (f_time > 0 and f_time < 24):
+                time = float(f_time)
+                break
+            else:
+                print("invalid input.")
+        except:
+            print("invalid input.")
+    # selecting order size
+    while (True):
+        print("Select order size: (number between 0 and 1 (inclusive) )")
+        size = input("size: ")
+        try:
+            f_size = float(size)
+            if (f_size > 0 and f_size < 24):
+                size = float(f_size)
+                break
+            else:
+                print("invalid input.")
+        except:
+            print("invalid input.")
+    # creating data frame and input function
+    columns = ['distance_km', 'order_size', 'vehicle_type', 'hour_of_day']
+    row_dict = {'distance_km':distance,'order_size':size,'vehicle_type':vehicle,'hour_of_day':time}
+    df = pd.DataFrame(data=None,columns=columns)
+    df = df.append(other=row_dict, ignore_index=True)
+    pred_in_fn = tf.estimator.inputs.pandas_input_fn(x=df,batch_size=1,num_epochs=1,shuffle=False)
+    prediction = list(model.predict(input_fn=pred_in_fn))[0]['predictions'][0]
+    prediction = y_scalar.inverse_transform(prediction)
+    print("PREDICTED DELIVERY TIME: {} minutes".format(prediction[0][0]))
+    print("-------------------------------------------------------------")
 
 
 
