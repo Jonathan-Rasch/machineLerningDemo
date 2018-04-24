@@ -134,21 +134,3 @@ class NeuralNetwork():
             pyplot.show(block=False)
         else:
             pyplot.pause(0.1)
-
-    # def updateFigure(self):
-    #     for i in range( len(self.layers) ):
-    #         layer = self.layers[i]
-    #         layer.updateFigure()
-    #     self.figure.canvas.draw()
-    #     self.figure.canvas.flush_events()
-
-# class DrawNN():
-#     def __init__( self, neural_network ):
-#         self.neural_network = neural_network
-#
-#     def draw( self ):
-#         widest_layer = max( self.neural_network )
-#         network = NeuralNetwork( widest_layer )
-#         for l in self.neural_network:
-#             network.add_layer(l)
-#         network.draw()
