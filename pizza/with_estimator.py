@@ -2,13 +2,10 @@ import tensorflow as tf
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import dataGen
-from dataGen import normalize,calculateDeliveryTime
+from pizza import dataGen
+from pizza.dataGen import normalize
 import random
-import logging
-import math
-from DNN_visual import NeuralNetwork
-from sklearn.preprocessing import MinMaxScaler
+from pizza.DNN_visual import NeuralNetwork
 import time
 ########################################################################################################################
 # PARAMETERS
@@ -56,7 +53,7 @@ def scale2dArr(array2d, arr_min, arr_max, scaleMin = 0, scaleMax = 1):
 ########################################################################################################################
 # getting data
 ########################################################################################################################
-df_train,df_test,x_scalar,y_scalar = dataGen.getData(1000,0.3,visualise=False,noiseLevel=NOISE_LEVEL)
+df_train,df_test,x_scalar,y_scalar = dataGen.getData(1000, 0.3, visualise=False, noiseLevel=NOISE_LEVEL)
 ########################################################################################################################
 # generating graph
 ########################################################################################################################
