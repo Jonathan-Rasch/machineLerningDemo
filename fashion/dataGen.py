@@ -28,7 +28,7 @@ def generateData(numDataPoints = 10000) -> pd.DataFrame:
         time_of_day = np.random.random()
         time = time_of_day * 24
         time_contribution = (math.sin(math.pi * 4 * time_of_day + math.pi * 0.5) + 1) / 2
-        time_contribution += (RANDOM_ERROR_WEIGHT)*np.random.uniform(low=-1,high=1)
+        #time_contribution += (RANDOM_ERROR_WEIGHT)*np.random.uniform(low=-1,high=1)
         row_dict['time_of_day'] = time
         ########################################################################################################################
         # temperature impact
@@ -36,7 +36,7 @@ def generateData(numDataPoints = 10000) -> pd.DataFrame:
         temp_before_considering_time = np.random.random()
         temperature_norma = temp_before_considering_time*0.6 + 0.4*temp_before_considering_time*(2*time_of_day if time_of_day < 0.5 else (1-2*(time_of_day-0.5)))
         temp_contribution = math.fabs(1.5 * (temperature_norma**2) - 0.5 * temperature_norma)# random quadratic to model the effect of temp
-        temp_contribution += (RANDOM_ERROR_WEIGHT) * np.random.uniform(low=-1, high=1)
+        #temp_contribution += (RANDOM_ERROR_WEIGHT) * np.random.uniform(low=-1, high=1)
         temperature_C = temperature_norma * MAXIMUM_TEMPERATURE_C # value for the dataframe
         row_dict['temperature'] = temperature_C
         ########################################################################################################################
@@ -57,7 +57,7 @@ def generateData(numDataPoints = 10000) -> pd.DataFrame:
                 else:
                     weather_type = 'rain/snow'
         weather_type_contribution = weather_types[weather_type]
-        weather_type_contribution += (RANDOM_ERROR_WEIGHT) * np.random.uniform(low=-1, high=1)
+        #weather_type_contribution += (RANDOM_ERROR_WEIGHT) * np.random.uniform(low=-1, high=1)
         row_dict['weather_type'] = weather_type
         ########################################################################################################################
         # day of the week impact
@@ -65,7 +65,7 @@ def generateData(numDataPoints = 10000) -> pd.DataFrame:
         day_of_the_week = {'Mon':0.1,'Tue':0.25,'Wed':0.35,'Thu':0.25,'Fri':0.5,'Sat':0.75,'Sun':1.0}
         day = list(day_of_the_week.keys())[np.random.randint(low=0,high=7)]
         day_contribution = day_of_the_week[day]
-        day_contribution += (RANDOM_ERROR_WEIGHT) * np.random.uniform(low=-1, high=1)
+        #day_contribution += (RANDOM_ERROR_WEIGHT) * np.random.uniform(low=-1, high=1)
         row_dict['day_of_the_week'] = day
         ########################################################################################################################
         # FINALISING

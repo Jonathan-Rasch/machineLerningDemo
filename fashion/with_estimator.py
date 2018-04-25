@@ -2,10 +2,10 @@ import tensorflow as tf
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from pizza import dataGen
-from pizza.dataGen import normalize
+from fashion import dataGen
+from fashion.dataGen import normalize
 import random
-from pizza.DNN_visual import NeuralNetwork
+from fashion.DNN_visual import NeuralNetwork
 import time
 ########################################################################################################################
 # PARAMETERS
@@ -54,7 +54,7 @@ def scale2dArr(array2d, arr_min, arr_max, scaleMin = 0, scaleMax = 1):
 ########################################################################################################################
 # getting data
 ########################################################################################################################
-df_train,df_test,x_scalar,y_scalar = dataGen.getData(10000, 0.3, visualise=False, noiseLevel=NOISE_LEVEL)
+df_train,df_test,x_scalar,y_scalar = dataGen.getData(1000, 0.3)
 ########################################################################################################################
 # generating graph
 ########################################################################################################################
@@ -62,7 +62,7 @@ error_figure = plt.figure(2)
 axis_error = error_figure.add_subplot(111)
 axis_error.set_autoscaley_on(True)
 #axis_error.set_ylim([0,60])
-axis_error.set_yticks(list(range(0,500,5)),minor=False)
+axis_error.set_yticks(list(np.linspace(start=0,stop=2,num=40)),minor=False)
 axis_error.set_title("Avg model error (in minutes) vs training iterations ")
 plt.xlabel("number of training iterations")
 plt.ylabel("error percentage in colorful shirt prediction")
@@ -73,12 +73,12 @@ plt.show(block=False)
 ########################################################################################################################
 # constructing feature columns
 ########################################################################################################################
-feature_columns = ['day_of_the_week','time_of_day','weather_type','temperature']
-f_distance = tf.feature_column.numeric_column(key='')
-f_temperature = tf.feature_column.numeric_column(key='')
-f_weather_type = tf.feature_column.embedding_column(tf.feature_column.categorical_column_with_vocabulary_list(key='', vocabulary_list=[]), dimension=2)
-f_day = tf.feature_column.embedding_column(tf.feature_column.categorical_column_with_vocabulary_list(key='', vocabulary_list=[]), dimension=2)
-f_cols = [f_distance, f_temperature, f_weather_type, f_day]
+feature_columns = ['time_of_day','day_of_the_week','weather_type','temperature']
+f_time_of_day = tf.feature_column.numeric_column(key='time_of_day')
+f_temperature = tf.feature_column.numeric_column(key='temperature')
+f_weather_type = tf.feature_column.embedding_column(tf.feature_column.categorical_column_with_vocabulary_list(key='day_of_the_week', vocabulary_list=['Mon','Tue','Wed','Thu','Fri','Sat','Sun']), dimension=3)
+f_day = tf.feature_column.embedding_column(tf.feature_column.categorical_column_with_vocabulary_list(key='weather_type', vocabulary_list=['sunny','overcast','rain/snow','storm']), dimension=2)
+f_cols = [f_time_of_day, f_temperature, f_weather_type, f_day]
 ########################################################################################################################
 # constructing input functions
 ########################################################################################################################
@@ -103,7 +103,7 @@ model = tf.estimator.DNNRegressor(hidden_units=[16,16,8],feature_columns=f_cols,
 # training
 ########################################################################################################################
 model.train(input_fn=TRAINING_FUNCT, steps=1)
-nn = NeuralNetwork([16,16,8],5,1) # 5 because vehicle type feature column has 2 dimensions
+nn = NeuralNetwork([16,16,8],7,1) # 5 because vehicle type feature column has 2 dimensions
 nn.updateLayerWeights(4, [[1],[1],[1],[1],[1],[1],[1],[1]]) # for output layer
 # obtaining weight vectors
 weights_hidden0_unscaled = np.array(list(model.get_variable_value("dnn/hiddenlayer_0/kernel")))
@@ -126,12 +126,12 @@ nn.updateLayerWeights(2, weights_hidden1)
 nn.updateLayerWeights(3, weights_hidden2)
 nn.draw()
 plt.pause(10)
-input("Press any key to begin training.")
+#input("Press any key to begin training.")
 error = evaluate(model)
 errors = []
 x_axis = []
 index = 0
-while(error>5):
+while(error>0.01):
     # training model
     model.train(input_fn=TRAINING_FUNCT,steps=steps)
     # obtaining weight vectors
@@ -156,7 +156,7 @@ while(error>5):
     nn.draw() #nn.updateFigure() # updating nn graph
     # computing average error
     error = evaluate(model)
-    if(error>60):
+    if(error>1):
         continue
     # making changes to graphs
     plt.figure(2)
@@ -166,25 +166,24 @@ while(error>5):
     line, = axis_error.plot(x_axis,errors)
     error_figure.canvas.draw()
     error_figure.canvas.flush_events()
-    # addjusting step number
-    if(error > 40):
+    #addjusting step number
+    if(error > 0.5):
         steps = 5
-    elif(error < 40 and error > 30):
+    elif(error < 0.5 and error >= 0.25):
         steps = 10
-    elif(error < 30 and error > 20):
+    elif(error < 0.25 and error >= 0.15):
         steps = 50
-    elif(error < 20 and error >10):
+    elif(error < 0.15 and error >= 0.1):
         TRAINING_FUNCT = infn_train2
         steps = 100
-    elif (error < 10 and error > 8):
+    elif (error < 0.1 and error > 0.05):
         TRAINING_FUNCT = infn_train3
         steps = 500
-    elif (error < 8 and error > 6):
+    elif (error < 0.025):
         TRAINING_FUNCT = infn_lateStage
         steps = 1000
-    elif (error < 6):
-        steps = 2000
 print("\nPREDICTION MODE\n")
+exit(1)
 while(True):
     isexit = input("type x to abort, or any other key to continue: ") == "x"
     if (isexit):
