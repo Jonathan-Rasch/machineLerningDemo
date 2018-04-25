@@ -1,8 +1,10 @@
 ########################################################################################################################
 # BASED ON CODE FROM Oli Blum, available at: https://stackoverflow.com/questions/29888233/how-to-visualize-a-neural-network?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
 ########################################################################################################################
+import math
 from matplotlib import pyplot
 from math import cos, sin, atan
+import copy
 
 FIGURE_NUM = 1
 
@@ -27,6 +29,8 @@ class Layer():
         self.neurons = self.__intialise_neurons(number_of_neurons)
         self.lines = []
         self.weights = []
+        self.previous_weights = None
+        self.weights == None
 
     def __intialise_neurons(self, number_of_neurons):
         neurons = []
@@ -47,7 +51,36 @@ class Layer():
             return 0
 
     def updateWeights(self,newWeights):
-        self.weights = newWeights
+        if(self.weights == None or self.previous_weights == None):
+            self.weights = copy.deepcopy(newWeights)
+            self.previous_weights = copy.deepcopy(newWeights)
+        else:
+            self.previous_weights = copy.deepcopy(self.weights)
+            self.weights = copy.deepcopy(newWeights)
+        # updating delta
+        delta = copy.deepcopy(newWeights)
+        max = None
+        min = None
+        for neuron_index, neuron in enumerate(self.neurons):
+            if self.previous_layer:
+                for prev_neuron_index, previous_layer_neuron in enumerate(self.previous_layer.neurons):
+                    delta[prev_neuron_index][neuron_index] = math.fabs(self.weights[prev_neuron_index][neuron_index] - self.previous_weights[prev_neuron_index][neuron_index])
+                    if(max == None or max < delta[prev_neuron_index][neuron_index]):
+                        max = delta[prev_neuron_index][neuron_index]
+                    if(min == None or min > delta[prev_neuron_index][neuron_index]):
+                        min = delta[prev_neuron_index][neuron_index]
+        max -= min
+        self.colorMatrix = copy.deepcopy(newWeights)
+        for neuron_index, neuron in enumerate(self.neurons):
+            if self.previous_layer:
+                for prev_neuron_index, previous_layer_neuron in enumerate(self.previous_layer.neurons):
+                    delta[prev_neuron_index][neuron_index] -= min
+                    delta[prev_neuron_index][neuron_index] /= 1 if max == 0 else max
+                    if(delta[prev_neuron_index][neuron_index] > 1 ):
+                        delta[prev_neuron_index][neuron_index] = 1
+                    elif(delta[prev_neuron_index][neuron_index] < 0):
+                        delta[prev_neuron_index][neuron_index] = 0
+                    self.colorMatrix[prev_neuron_index][neuron_index] = (delta[prev_neuron_index][neuron_index],0,1-delta[prev_neuron_index][neuron_index])
 
     def __get_previous_layer(self, network):
         if len(network.layers) > 0:
@@ -55,11 +88,11 @@ class Layer():
         else:
             return None
 
-    def __line_between_two_neurons(self, neuron1, neuron2,weight = 1):
+    def __line_between_two_neurons(self, neuron1, neuron2,prev_neuron_index,neuron_index, weight = 1,):
         angle = atan((neuron2.x - neuron1.x) / float(neuron2.y - neuron1.y))
         x_adjustment = self.neuron_radius * sin(angle)
         y_adjustment = self.neuron_radius * cos(angle)
-        line = pyplot.Line2D((neuron1.x - x_adjustment, neuron2.x + x_adjustment), (neuron1.y - y_adjustment, neuron2.y + y_adjustment),linewidth=weight)
+        line = pyplot.Line2D((neuron1.x - x_adjustment, neuron2.x + x_adjustment), (neuron1.y - y_adjustment, neuron2.y + y_adjustment),linewidth=weight,color=self.colorMatrix[prev_neuron_index][neuron_index])
         pyplot.gca().add_line(line)
         self.lines.append(line)
 
@@ -86,7 +119,7 @@ class Layer():
                 neuron.draw( self.neuron_radius )
                 if self.previous_layer:
                     for prev_neuron_index,previous_layer_neuron in enumerate(self.previous_layer.neurons):
-                        self.__line_between_two_neurons(neuron, previous_layer_neuron,weight=self.weights[prev_neuron_index][neuron_index])
+                        self.__line_between_two_neurons(neuron, previous_layer_neuron,prev_neuron_index,neuron_index,weight=self.weights[prev_neuron_index][neuron_index])
         else:
             for neuron_index,neuron in enumerate(self.neurons):
                 neuron.draw( self.neuron_radius )

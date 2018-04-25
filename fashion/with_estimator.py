@@ -54,18 +54,17 @@ def scale2dArr(array2d, arr_min, arr_max, scaleMin = 0, scaleMax = 1):
 ########################################################################################################################
 # getting data
 ########################################################################################################################
-df_train,df_test,x_scalar,y_scalar = dataGen.getData(10000, 0.3)
+print("OBTAINING DATA...")
+df_train,df_test,x_scalar,y_scalar = dataGen.getData(1000, 0.3)
 ########################################################################################################################
 # generating graph
 ########################################################################################################################
 error_figure = plt.figure(2)
 axis_error = error_figure.add_subplot(111)
 axis_error.set_autoscaley_on(True)
-#axis_error.set_ylim([0,60])
-axis_error.set_yticks(list(np.linspace(start=0,stop=2,num=40)),minor=False)
-axis_error.set_title("Avg model error (in minutes) vs training iterations ")
-plt.xlabel("number of training iterations")
-plt.ylabel("error percentage in colorful shirt prediction")
+axis_error.set_title("Average model error.")
+plt.xlabel("Number of training iterations")
+plt.ylabel("Percentage error in prediction")
 plt.figure(1)
 # for axis in scatterMatrix.flatten():
 #     axis.plot()
@@ -94,9 +93,8 @@ infn_pred = tf.estimator.inputs.pandas_input_fn(x=df_test[feature_columns],num_e
 ########################################################################################################################
 steps = 1
 my_checkpointing_config = tf.estimator.RunConfig(
-    save_checkpoints_secs = 500,  # Save checkpoints every 30 seconds.
-    keep_checkpoint_max = 1       # Retain the 10 most recent checkpoints.
-    #model_dir='pizza'
+    save_checkpoints_secs = 500,
+    keep_checkpoint_max = 1
 )
 model = tf.estimator.DNNRegressor(hidden_units=[16,16,8],feature_columns=f_cols,dropout=0.1,activation_fn=tf.nn.elu,config=my_checkpointing_config)
 ########################################################################################################################
@@ -247,7 +245,8 @@ for input in inputs:
     for pred in prediction_lst:
         value_raw = pred['predictions']
         value = y_scalar.inverse_transform(value_raw.reshape(1,-1))
-    print("CONDITIONS: {}")
+    print("-------------------------------------------------------------")
+    print("Input Parameters: time={}, day={}, temperature={}, weather_type={}".format(input['time_of_day'],input['day_of_the_week'],input['temperature'],input['weather_type']))
     print("Predicted percentage of colorful clothes: {} %.".format(round(value[0][0]*100)))
     print("-------------------------------------------------------------")
 
