@@ -130,7 +130,7 @@ error = evaluate(model)
 errors = []
 x_axis = []
 index = 0
-while(error>5):
+while(error>5.5):
     # training model
     model.train(input_fn=TRAINING_FUNCT,steps=steps)
     # obtaining weight vectors

@@ -184,57 +184,60 @@ while(error>=0.05):
     #     TRAINING_FUNCT = infn_lateStage
     #     steps = 1000
 print("\nPREDICTION MODE\n")
-while(True):
-    isexit = input("type x to abort, or any other key to continue: ") == "x"
-    if (isexit):
-        exit(0)
-    # selecting drivers vehicle
-    weather_types = ['sunny','overcast','rain/snow','storm']
-    while(True):
-        print("Select weather type: (0: sunny, 1: overcast, 2: rain/snow 3: storm)")
-        weather_type = input("weather: ")
-        if(str(weather_type) in ['0','1','2','3']):
-            weather_type = weather_types[int(weather_type)]
-            break
-        else:
-            print("invalid input.")
-    # selecting distance to customer
-    while(True):
-        print("Select temperature: (number between 0 and 35 (inclusive) C)")
-        temperature = input("temperature: ")
-        try:
-            temperature = float(temperature)
-            if (temperature >= 0 and temperature <= 35):
-                break
-            else:
-                print("invalid input.")
-        except:
-            print("invalid input.")
-    # selecting time of day
-    while (True):
-        print("Select hour of day: (number between 0 and 24 (exclusive) )")
-        time = input("time: ")
-        try:
-            time = float(time)
-            if (time >= 0 and time < 24):
-                break
-            else:
-                print("invalid input.")
-        except:
-            print("invalid input.")
-    # selecting order size
-    while (True):
-        print("Select day: (Mon,Tue,Wed,Thu,Fri,Sat,Sun) )")
-        day = input("day: ")
-        try:
-            if (day.lower().title() in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']):
-                break
-            else:
-                print("invalid input.")
-        except:
-            print("invalid input.")
+# while(True):
+#     isexit = input("type x to abort, or any other key to continue: ") == "x"
+#     if (isexit):
+#         exit(0)
+#     # selecting drivers vehicle
+#     weather_types = ['sunny','overcast','rain/snow','storm']
+#     while(True):
+#         print("Select weather type: (0: sunny, 1: overcast, 2: rain/snow 3: storm)")
+#         weather_type = input("weather: ")
+#         if(str(weather_type) in ['0','1','2','3']):
+#             weather_type = weather_types[int(weather_type)]
+#             break
+#         else:
+#             print("invalid input.")
+#     # selecting distance to customer
+#     while(True):
+#         print("Select temperature: (number between 0 and 35 (inclusive) C)")
+#         temperature = input("temperature: ")
+#         try:
+#             temperature = float(temperature)
+#             if (temperature >= 0 and temperature <= 35):
+#                 break
+#             else:
+#                 print("invalid input.")
+#         except:
+#             print("invalid input.")
+#     # selecting time of day
+#     while (True):
+#         print("Select hour of day: (number between 0 and 24 (exclusive) )")
+#         time = input("time: ")
+#         try:
+#             time = float(time)
+#             if (time >= 0 and time < 24):
+#                 break
+#             else:
+#                 print("invalid input.")
+#         except:
+#             print("invalid input.")
+#     # selecting order size
+#     while (True):
+#         print("Select day: (Mon,Tue,Wed,Thu,Fri,Sat,Sun) )")
+#         day = input("day: ")
+#         try:
+#             if (day.lower().title() in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']):
+#                 break
+#             else:
+#                 print("invalid input.")
+#         except:
+#             print("invalid input.")
     # creating data frame and input function
-    row_dict = {'time_of_day':time,'day_of_the_week':day,'weather_type':weather_type,'temperature':temperature}
+inputs = []
+inputs.append({'time_of_day':12,'day_of_the_week':'Thu','weather_type':'sunny','temperature':18})
+for input in inputs:
+    row_dict = input
     df = pd.DataFrame(data=None,columns=['day_of_the_week','time_of_day','weather_type','temperature'])
     df = df.append(other=row_dict, ignore_index=True)
     df_scaled = normalize(df,columns=['time_of_day','temperature'],col_scalar=x_scalar)
@@ -244,6 +247,7 @@ while(True):
     for pred in prediction_lst:
         value_raw = pred['predictions']
         value = y_scalar.inverse_transform(value_raw.reshape(1,-1))
+    print("CONDITIONS: {}")
     print("Predicted percentage of colorful clothes: {} %.".format(round(value[0][0]*100)))
     print("-------------------------------------------------------------")
 
