@@ -43,7 +43,7 @@ def generateData(numDataPoints = 10000) -> pd.DataFrame:
         # weather type impact
         ########################################################################################################################
         sun_chance = ((30/19)*temperature_norma - (11/19))  if (temperature_norma >= 0.43) else 0.1 # chance that its sunny
-        weather_types = {'sunny':1,'overcast':0.5,'rain/snow':0.5,'storm':0}
+        weather_types = {'sunny':1,'overcast':0.5,'rain/snow':0.25,'storm':0}
         if(sun_chance >= np.random.random()):
             weather_type = 'sunny'
         else:

@@ -244,7 +244,7 @@ while(True):
     for pred in prediction_lst:
         value_raw = pred['predictions']
         value = y_scalar.inverse_transform(value_raw.reshape(1,-1))
-    print("Predicted percentage of colorful clothes: {} %.".format(value[0][0]*100))
+    print("Predicted percentage of colorful clothes: {} %.".format(round(value[0][0]*100)))
     print("-------------------------------------------------------------")
 
 
