@@ -54,7 +54,7 @@ def scale2dArr(array2d, arr_min, arr_max, scaleMin = 0, scaleMax = 1):
 ########################################################################################################################
 # getting data
 ########################################################################################################################
-df_train,df_test,x_scalar,y_scalar = dataGen.getData(1000, 0.3)
+df_train,df_test,x_scalar,y_scalar = dataGen.getData(10000, 0.3)
 ########################################################################################################################
 # generating graph
 ########################################################################################################################
@@ -85,7 +85,7 @@ f_cols = [f_time_of_day, f_temperature, f_weather_type, f_day]
 infn_train1 = tf.estimator.inputs.pandas_input_fn(x=df_train[feature_columns],y=df_train[['colorful_percentage']],num_epochs=500,batch_size=5,shuffle=True)
 infn_train2 = tf.estimator.inputs.pandas_input_fn(x=df_train[feature_columns],y=df_train[['colorful_percentage']],num_epochs=500,batch_size=10,shuffle=True)
 infn_train3 = tf.estimator.inputs.pandas_input_fn(x=df_train[feature_columns],y=df_train[['colorful_percentage']],num_epochs=500,batch_size=50,shuffle=True)
-infn_lateStage = tf.estimator.inputs.pandas_input_fn(x=df_train[feature_columns],y=df_train[['colorful_percentage']],num_epochs=500,batch_size=128,shuffle=True)
+infn_lateStage = tf.estimator.inputs.pandas_input_fn(x=df_train[feature_columns],y=df_train[['colorful_percentage']],num_epochs=500,batch_size=256,shuffle=True)
 TRAINING_FUNCT = infn_train1
 infn_test = tf.estimator.inputs.pandas_input_fn(x=df_test[feature_columns],y=df_test[['colorful_percentage']],num_epochs=1,shuffle=False)
 infn_pred = tf.estimator.inputs.pandas_input_fn(x=df_test[feature_columns],num_epochs=1,shuffle=False)
@@ -94,8 +94,8 @@ infn_pred = tf.estimator.inputs.pandas_input_fn(x=df_test[feature_columns],num_e
 ########################################################################################################################
 steps = 1
 my_checkpointing_config = tf.estimator.RunConfig(
-    save_checkpoints_secs = 5,  # Save checkpoints every 30 seconds.
-    keep_checkpoint_max = 2       # Retain the 10 most recent checkpoints.
+    save_checkpoints_secs = 500,  # Save checkpoints every 30 seconds.
+    keep_checkpoint_max = 1       # Retain the 10 most recent checkpoints.
     #model_dir='pizza'
 )
 model = tf.estimator.DNNRegressor(hidden_units=[16,16,8],feature_columns=f_cols,dropout=0.1,activation_fn=tf.nn.elu,config=my_checkpointing_config)
@@ -131,7 +131,7 @@ error = evaluate(model)
 errors = []
 x_axis = []
 index = 0
-while(error>0.01):
+while(error>=0.05):
     # training model
     model.train(input_fn=TRAINING_FUNCT,steps=steps)
     # obtaining weight vectors
@@ -156,8 +156,8 @@ while(error>0.01):
     nn.draw() #nn.updateFigure() # updating nn graph
     # computing average error
     error = evaluate(model)
-    if(error>1):
-        continue
+    # if(error>1):
+    #     continue
     # making changes to graphs
     plt.figure(2)
     index += steps
@@ -167,45 +167,44 @@ while(error>0.01):
     error_figure.canvas.draw()
     error_figure.canvas.flush_events()
     #addjusting step number
-    if(error > 0.5):
-        steps = 5
-    elif(error < 0.5 and error >= 0.25):
-        steps = 10
-    elif(error < 0.25 and error >= 0.15):
-        steps = 50
-    elif(error < 0.15 and error >= 0.1):
-        TRAINING_FUNCT = infn_train2
-        steps = 100
-    elif (error < 0.1 and error > 0.05):
-        TRAINING_FUNCT = infn_train3
-        steps = 500
-    elif (error < 0.025):
-        TRAINING_FUNCT = infn_lateStage
-        steps = 1000
+    if(error < 0.1):
+        steps = 250
+        TRAINING_FUNCT=infn_lateStage
+    # elif(error < 0.5 and error >= 0.25):
+    #     steps = 10
+    # elif(error < 0.25 and error >= 0.15):
+    #     steps = 50
+    # elif(error < 0.15 and error >= 0.1):
+    #     TRAINING_FUNCT = infn_train2
+    #     steps = 100
+    # elif (error < 0.1 and error > 0.05):
+    #     TRAINING_FUNCT = infn_train3
+    #     steps = 500
+    # elif (error < 0.025):
+    #     TRAINING_FUNCT = infn_lateStage
+    #     steps = 1000
 print("\nPREDICTION MODE\n")
-exit(1)
 while(True):
     isexit = input("type x to abort, or any other key to continue: ") == "x"
     if (isexit):
         exit(0)
     # selecting drivers vehicle
-    vehicle_types = ['none', 'car', 'scooter', 'bicycle']
+    weather_types = ['sunny','overcast','rain/snow','storm']
     while(True):
-        print("Select drivers vehicle type: (0: None, 1: car, 2: scooter 3: bicycle)")
-        vehicle = input("vehicle: ")
-        if(str(vehicle) in ['0','1','2','3']):
-            vehicle = vehicle_types[int(vehicle)]
+        print("Select weather type: (0: sunny, 1: overcast, 2: rain/snow 3: storm)")
+        weather_type = input("weather: ")
+        if(str(weather_type) in ['0','1','2','3']):
+            weather_type = weather_types[int(weather_type)]
             break
         else:
             print("invalid input.")
     # selecting distance to customer
     while(True):
-        print("Select distance to customer: (number between 0 and 20 (inclusive) Kilometers)")
-        distance = input("distance: ")
+        print("Select temperature: (number between 0 and 35 (inclusive) C)")
+        temperature = input("temperature: ")
         try:
-            f_dist = float(distance)
-            if (f_dist > 0 and f_dist <= 20):
-                distance = float(distance)
+            temperature = float(temperature)
+            if (temperature >= 0 and temperature <= 35):
                 break
             else:
                 print("invalid input.")
@@ -216,9 +215,8 @@ while(True):
         print("Select hour of day: (number between 0 and 24 (exclusive) )")
         time = input("time: ")
         try:
-            f_time = float(time)
-            if (f_time > 0 and f_time < 24):
-                time = float(f_time)
+            time = float(time)
+            if (time >= 0 and time < 24):
                 break
             else:
                 print("invalid input.")
@@ -226,30 +224,27 @@ while(True):
             print("invalid input.")
     # selecting order size
     while (True):
-        print("Select order size: (number between 0 and 1 (inclusive) )")
-        size = input("size: ")
+        print("Select day: (Mon,Tue,Wed,Thu,Fri,Sat,Sun) )")
+        day = input("day: ")
         try:
-            f_size = float(size)
-            if (f_size > 0 and f_size < 24):
-                size = float(f_size)
+            if (day.lower().title() in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']):
                 break
             else:
                 print("invalid input.")
         except:
             print("invalid input.")
     # creating data frame and input function
-    columns = ['distance_km', 'order_size', 'vehicle_type', 'hour_of_day']
-    row_dict = {'distance_km':distance,'order_size':size,'vehicle_type':vehicle,'hour_of_day':time}
-    df = pd.DataFrame(data=None,columns=columns)
+    row_dict = {'time_of_day':time,'day_of_the_week':day,'weather_type':weather_type,'temperature':temperature}
+    df = pd.DataFrame(data=None,columns=['day_of_the_week','time_of_day','weather_type','temperature'])
     df = df.append(other=row_dict, ignore_index=True)
-    df_scaled = normalize(df,columns=['distance_km','order_size','hour_of_day'],col_scalar=x_scalar)
+    df_scaled = normalize(df,columns=['time_of_day','temperature'],col_scalar=x_scalar)
     #data = pd.concat([data_unscaled, data_scaled], axis=1)
     pred_in_fn = tf.estimator.inputs.pandas_input_fn(x=df_scaled[0],batch_size=1,num_epochs=1,shuffle=False)
     prediction_lst = list(model.predict(input_fn=pred_in_fn))
     for pred in prediction_lst:
         value_raw = pred['predictions']
         value = y_scalar.inverse_transform(value_raw.reshape(1,-1))
-    print("PREDICTED DELIVERY TIME: {} minutes.".format(value[0][0]))
+    print("Predicted percentage of colorful clothes: {} %.".format(value[0][0]*100))
     print("-------------------------------------------------------------")
 
 

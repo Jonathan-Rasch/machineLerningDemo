@@ -11,10 +11,10 @@ import math
 ########################################################################################################################
 MAXIMUM_TEMPERATURE_C = 35
 # note: below parameters should add to 1
-TEMPERATURE_WEIGHT = 0.35
-WEATHER_TYPE_WEIGHT = 0.3
-DAY_OF_WEEK_WEIGHT = 0.1
-TIME_OF_DAY_WEIGHT = 0.2
+TEMPERATURE_WEIGHT = 0.30
+WEATHER_TYPE_WEIGHT = 0.45
+DAY_OF_WEEK_WEIGHT = 0.05
+TIME_OF_DAY_WEIGHT = 0.15
 RANDOM_ERROR_WEIGHT = 0.05
 
 def generateData(numDataPoints = 10000) -> pd.DataFrame:
@@ -27,15 +27,15 @@ def generateData(numDataPoints = 10000) -> pd.DataFrame:
         ########################################################################################################################
         time_of_day = np.random.random()
         time = time_of_day * 24
-        time_contribution = (math.sin(math.pi * 4 * time_of_day + math.pi * 0.5) + 1) / 2
+        time_contribution = (math.sin(math.pi * 4 * time_of_day + (math.pi * 0.5 * np.random.uniform(low=-1, high=1))) + 1) / 2
         #time_contribution += (RANDOM_ERROR_WEIGHT)*np.random.uniform(low=-1,high=1)
         row_dict['time_of_day'] = time
         ########################################################################################################################
         # temperature impact
         ########################################################################################################################
         temp_before_considering_time = np.random.random()
-        temperature_norma = temp_before_considering_time*0.6 + 0.4*temp_before_considering_time*(2*time_of_day if time_of_day < 0.5 else (1-2*(time_of_day-0.5)))
-        temp_contribution = math.fabs(1.5 * (temperature_norma**2) - 0.5 * temperature_norma)# random quadratic to model the effect of temp
+        temperature_norma = temp_before_considering_time*0.6 + 0.4*temp_before_considering_time*(2*time_of_day if time_of_day < 0.5 else (1-2*(time_of_day-0.5))) + RANDOM_ERROR_WEIGHT*np.random.uniform(low=-1, high=1)
+        temp_contribution = 1.5 * (temperature_norma**2) - 0.5 * temperature_norma - 0.2# random quadratic to model the effect of temp
         #temp_contribution += (RANDOM_ERROR_WEIGHT) * np.random.uniform(low=-1, high=1)
         temperature_C = temperature_norma * MAXIMUM_TEMPERATURE_C # value for the dataframe
         row_dict['temperature'] = temperature_C
@@ -43,7 +43,7 @@ def generateData(numDataPoints = 10000) -> pd.DataFrame:
         # weather type impact
         ########################################################################################################################
         sun_chance = ((30/19)*temperature_norma - (11/19))  if (temperature_norma >= 0.43) else 0.1 # chance that its sunny
-        weather_types = {'sunny':1,'overcast':0.5,'rain/snow':0.25,'storm':0}
+        weather_types = {'sunny':1,'overcast':0.5,'rain/snow':0.5,'storm':0}
         if(sun_chance >= np.random.random()):
             weather_type = 'sunny'
         else:
@@ -71,7 +71,7 @@ def generateData(numDataPoints = 10000) -> pd.DataFrame:
         # FINALISING
         ########################################################################################################################
         # adding to dataframe
-        row_dict['colorful_percentage'] = temp_contribution*TEMPERATURE_WEIGHT + weather_type_contribution*WEATHER_TYPE_WEIGHT + day_contribution*DAY_OF_WEEK_WEIGHT + time_contribution*TIME_OF_DAY_WEIGHT #+ np.random.random()*RANDOM_ERROR_WEIGHT
+        row_dict['colorful_percentage'] = temp_contribution*TEMPERATURE_WEIGHT + weather_type_contribution*WEATHER_TYPE_WEIGHT + day_contribution*DAY_OF_WEEK_WEIGHT + time_contribution*TIME_OF_DAY_WEIGHT + np.random.random()*RANDOM_ERROR_WEIGHT
         df = df.append(other=row_dict, ignore_index=True)
     return df
 
@@ -121,7 +121,7 @@ def getData(n=10000,test_percentage=0.3):
     return (df_train,df_test,x_scalar,y_scalar)
 
 if __name__ == "__main__":
-    data = generateData(1000)
+    data = generateData(2000)
     # replacing day of the week values
     data.replace(to_replace='Mon', value=0, inplace=True)
     data.replace(to_replace='Tue', value=1, inplace=True)
