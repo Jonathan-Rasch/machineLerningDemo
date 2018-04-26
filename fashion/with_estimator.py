@@ -20,6 +20,7 @@ columns=['day_of_the_week','time_of_day','weather_type','temperature','colorful_
 ########################################################################################################################
 # Supporting functions
 ########################################################################################################################
+
 def evaluate(model):
     prediction_lst = model.predict(input_fn=infn_pred)
     print(model.evaluate(input_fn=infn_test))
@@ -40,6 +41,27 @@ def evaluate(model):
     avg_err = error_sum/len(predictions)
     print(" AVERAGE ERROR: " + str(avg_err))
     return avg_err
+
+def pltErrGraph(x_axis,errors):
+    fig = plt.figure(2)
+    fig.clear()
+    axis_error = error_figure.add_subplot(111)
+    axis_error.set_autoscaley_on(True)
+    axis_error.set_title("Average model error.")
+    plt.xlabel("Number of training iterations")
+    plt.ylabel("Percentage error in prediction")
+    axis_error.plot(x_axis, errors)
+    plt.annotate('MODE: Training', (0, 0), (25, 200), xycoords='axes fraction', textcoords='offset points', va='top')
+    plt.annotate('AVG ERROR: {}% '.format(round(error[0] * 100)), (0, 0), (25, 210), xycoords='axes fraction',
+                 textcoords='offset points', va='top')
+    plt.annotate('ITERATION: {} '.format(index), (0, 0), (25, 220), xycoords='axes fraction',
+                 textcoords='offset points', va='top')
+    plt.annotate('PREDICTION: {}% '.format(" -- "),
+                 (0, 0), (25, 230), xycoords='axes fraction', textcoords='offset points', va='top')
+    plt.annotate('INPUTS: temp={}C,type={},day={},time={}'.format(" -- "," -- ", " -- "," -- "),
+                 (0, 0), (25, 240), xycoords='axes fraction', textcoords='offset points', va='top')
+    error_figure.canvas.draw()
+    error_figure.canvas.flush_events()
 
 def scale2dArr(array2d, arr_min, arr_max, scaleMin = 0, scaleMax = 1):
     diff = arr_max - arr_min
@@ -65,9 +87,6 @@ axis_error.set_autoscaley_on(True)
 axis_error.set_title("Average model error.")
 plt.xlabel("Number of training iterations")
 plt.ylabel("Percentage error in prediction")
-plt.figure(1)
-# for axis in scatterMatrix.flatten():
-#     axis.plot()
 plt.show(block=False)
 ########################################################################################################################
 # constructing feature columns
@@ -103,6 +122,7 @@ model = tf.estimator.DNNRegressor(hidden_units=[16,16,8],feature_columns=f_cols,
 model.train(input_fn=TRAINING_FUNCT, steps=1)
 nn = NeuralNetwork([16,16,8],7,1) # 5 because vehicle type feature column has 2 dimensions
 nn.updateLayerWeights(4, [[1],[1],[1],[1],[1],[1],[1],[1]]) # for output layer
+
 # obtaining weight vectors
 weights_hidden0_unscaled = np.array(list(model.get_variable_value("dnn/hiddenlayer_0/kernel")))
 weights_hidden1_unscaled = np.array(list(model.get_variable_value("dnn/hiddenlayer_1/kernel")))
@@ -154,16 +174,12 @@ while(error>=0.05):
     nn.draw() #nn.updateFigure() # updating nn graph
     # computing average error
     error = evaluate(model)
-    # if(error>1):
-    #     continue
     # making changes to graphs
-    plt.figure(2)
     index += steps
     x_axis.append(index)
     errors.append(error)
-    line, = axis_error.plot(x_axis,errors)
-    error_figure.canvas.draw()
-    error_figure.canvas.flush_events()
+    pltErrGraph(x_axis,errors)
+    # adjusting info screen
     #addjusting step number
     if(error < 0.1):
         steps = 250
@@ -233,7 +249,7 @@ print("\nPREDICTION MODE\n")
 #             print("invalid input.")
     # creating data frame and input function
 inputs = []
-inputs.append({'time_of_day':12,'day_of_the_week':'Thu','weather_type':'sunny','temperature':18})
+inputs.append({'time_of_day':12,'day_of_the_week':'Sun','weather_type':'sunny','temperature':25})
 for input in inputs:
     row_dict = input
     df = pd.DataFrame(data=None,columns=['day_of_the_week','time_of_day','weather_type','temperature'])
@@ -245,10 +261,34 @@ for input in inputs:
     for pred in prediction_lst:
         value_raw = pred['predictions']
         value = y_scalar.inverse_transform(value_raw.reshape(1,-1))
+    # plotting prediction
+    fig = plt.figure(2)
+    fig.clear()
+    axis_error = error_figure.add_subplot(111)
+    axis_error.set_autoscaley_on(True)
+    axis_error.set_title("Average model error.")
+    plt.xlabel("Number of training iterations")
+    plt.ylabel("Percentage error in prediction")
+    axis_error.plot(x_axis, errors)
+    plt.annotate('MODE: Prediction', (0, 0), (25, 200), xycoords='axes fraction', textcoords='offset points', va='top')
+    plt.annotate('AVG ERROR: {}% '.format(round(error[0] * 100)), (0, 0), (25, 210), xycoords='axes fraction',
+                 textcoords='offset points', va='top')
+    plt.annotate('ITERATION: {} '.format(index), (0, 0), (25, 220), xycoords='axes fraction',
+                 textcoords='offset points', va='top')
+    plt.annotate('PREDICTION: {}% '.format(round(value[0][0]*100)),
+                 (0, 0), (25, 230), xycoords='axes fraction', textcoords='offset points', va='top')
+    plt.annotate('INPUTS: temp={}C,type={},day={},time={}'.format(input['temperature'], input['weather_type'],
+                                           input['day_of_the_week'], input['time_of_day']),
+                 (0, 0), (25, 240), xycoords='axes fraction', textcoords='offset points', va='top')
+    error_figure.canvas.draw()
+    error_figure.canvas.flush_events()
     print("-------------------------------------------------------------")
     print("Input Parameters: time={}, day={}, temperature={}, weather_type={}".format(input['time_of_day'],input['day_of_the_week'],input['temperature'],input['weather_type']))
     print("Predicted percentage of colorful clothes: {} %.".format(round(value[0][0]*100)))
     print("-------------------------------------------------------------")
+
+
+
 
 
 
