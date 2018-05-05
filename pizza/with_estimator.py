@@ -124,7 +124,7 @@ nn.updateLayerWeights(1, weights_hidden0) # hidden layer 0 is the 1 st layer of 
 nn.updateLayerWeights(2, weights_hidden1)
 nn.updateLayerWeights(3, weights_hidden2)
 nn.draw()
-plt.pause(10)
+plt.pause(60)
 input("Press any key to begin training.")
 error = evaluate(model)
 errors = []
